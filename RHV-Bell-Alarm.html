@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="RHV Bell">
+<title>RHV Bell — आपोआप बेल</title>
+<style>
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+body {
+  font-family:'Segoe UI',sans-serif;
+  background:#0f172a;
+  color:white;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  overflow-x:hidden;
+}
+
+/* ── Header ── */
+.header {
+  width:100%;
+  background:linear-gradient(135deg,#1e3c72,#2a5298);
+  padding:16px 20px 14px;
+  text-align:center;
+  box-shadow:0 4px 20px rgba(0,0,0,0.4);
+}
+.header h1 { font-size:1.1rem; font-weight:700; letter-spacing:0.5px; }
+.header p  { font-size:0.72rem; opacity:0.7; margin-top:3px; }
+
+/* ── Clock ── */
+.clock-wrap {
+  margin:22px 0 10px;
+  text-align:center;
+}
+.clock {
+  font-size:4rem;
+  font-weight:900;
+  font-variant-numeric:tabular-nums;
+  letter-spacing:2px;
+  color:#fbbf24;
+  line-height:1;
+}
+.date-str { font-size:0.82rem; color:rgba(255,255,255,0.55); margin-top:6px; }
+
+/* ── Status card ── */
+.status-card {
+  width:calc(100% - 32px);
+  max-width:420px;
+  background:#1e293b;
+  border-radius:16px;
+  padding:18px 20px;
+  margin:14px 0;
+  border:1px solid rgba(255,255,255,0.07);
+}
+.status-label { font-size:0.7rem; color:rgba(255,255,255,0.45); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; }
+.status-value { font-size:1.05rem; font-weight:700; color:#e2e8f0; }
+.status-time  { font-size:0.8rem; color:#fbbf24; margin-top:4px; font-weight:600; }
+
+/* ── Countdown ── */
+.countdown-wrap {
+  width:calc(100% - 32px);
+  max-width:420px;
+  background:linear-gradient(135deg,#1e3c72,#1e40af);
+  border-radius:16px;
+  padding:20px;
+  margin:6px 0;
+  text-align:center;
+}
+.countdown-label { font-size:0.72rem; opacity:0.65; margin-bottom:8px; }
+.countdown-num {
+  font-size:2.8rem;
+  font-weight:900;
+  font-variant-numeric:tabular-nums;
+  color:#fbbf24;
+  line-height:1;
+}
+.countdown-sub { font-size:0.75rem; opacity:0.6; margin-top:6px; }
+
+/* ── Schedule preview ── */
+.schedule-wrap {
+  width:calc(100% - 32px);
+  max-width:420px;
+  margin:14px 0 80px;
+}
+.schedule-title {
+  font-size:0.72rem;
+  color:rgba(255,255,255,0.45);
+  text-transform:uppercase;
+  letter-spacing:1px;
+  margin-bottom:10px;
+  padding-left:4px;
+}
+.bell-item {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:11px 14px;
+  border-radius:10px;
+  margin-bottom:6px;
+  background:#1e293b;
+  border-left:3px solid #334155;
+  transition:all 0.2s;
+  font-size:0.82rem;
+}
+.bell-item.past    { opacity:0.35; }
+.bell-item.next    { background:#1e3c72; border-left-color:#fbbf24; }
+.bell-item.current { background:#166534; border-left-color:#4ade80; animation:pulse 1s infinite; }
+.bell-time  { font-weight:700; font-variant-numeric:tabular-nums; color:#fbbf24; min-width:48px; }
+.bell-label { flex:1; color:#e2e8f0; }
+.bell-school{ font-size:0.68rem; background:rgba(255,255,255,0.1); padding:2px 7px; border-radius:10px; white-space:nowrap; }
+
+/* ── Fullscreen Bell Overlay ── */
+#bellOverlay {
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  background:#0f172a;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:30px;
+}
+#bellOverlay.show { display:flex; }
+.overlay-bell { font-size:6rem; animation:swing 0.5s ease-in-out infinite alternate; }
+.overlay-time  { font-size:3.2rem; font-weight:900; color:#fbbf24; margin:10px 0 4px; font-variant-numeric:tabular-nums; }
+.overlay-label { font-size:1.3rem; font-weight:700; color:white; max-width:320px; line-height:1.4; }
+.overlay-school{ font-size:0.9rem; color:#86efac; margin-top:10px; font-weight:600; }
+.overlay-dismiss {
+  margin-top:36px;
+  padding:14px 40px;
+  background:#fbbf24;
+  color:#0f172a;
+  border:none;
+  border-radius:50px;
+  font-size:1rem;
+  font-weight:800;
+  cursor:pointer;
+  font-family:inherit;
+}
+.overlay-auto { font-size:0.72rem; color:rgba(255,255,255,0.35); margin-top:12px; }
+
+/* ── Bottom bar ── */
+.bottom-bar {
+  position:fixed;
+  bottom:0; left:0; right:0;
+  background:#1e3c72;
+  padding:10px 20px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  font-size:0.75rem;
+  z-index:100;
+  box-shadow:0 -2px 15px rgba(0,0,0,0.4);
+}
+.bar-status { display:flex; align-items:center; gap:7px; }
+.dot { width:8px; height:8px; border-radius:50%; background:#4ade80; animation:blink 1.5s infinite; }
+.dot.off { background:#ef4444; animation:none; }
+
+/* ── Animations ── */
+@keyframes swing { from{transform:rotate(-15deg)} to{transform:rotate(15deg)} }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* Flash on ring */
+body.flash { animation:flashbg 0.25s ease-in-out 4; }
+@keyframes flashbg { 0%,100%{background:#0f172a} 50%{background:#1e3a1e} }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🔔 RHV Jalna — आपोआप बेल</h1>
+  <p>तासिका वेळापत्रक • High School & Middle School</p>
+</div>
+
+<div class="clock-wrap">
+  <div class="clock" id="clock">--:--:--</div>
+  <div class="date-str" id="dateStr">—</div>
+</div>
+
+<div class="status-card">
+  <div class="status-label">अगली बेल</div>
+  <div class="status-value" id="nextLabel">लोड होत आहे...</div>
+  <div class="status-time"  id="nextTime">—</div>
+</div>
+
+<div class="countdown-wrap">
+  <div class="countdown-label">वेळ शिल्लक</div>
+  <div class="countdown-num" id="countdown">--:--</div>
+  <div class="countdown-sub" id="countdownSub">—</div>
+</div>
+
+<div class="schedule-wrap">
+  <div class="schedule-title">आजचे वेळापत्रक</div>
+  <div id="scheduleList"></div>
+</div>
+
+<!-- Fullscreen Bell Alert -->
+<div id="bellOverlay">
+  <div class="overlay-bell">🔔</div>
+  <div class="overlay-time"   id="oTime">—</div>
+  <div class="overlay-label"  id="oLabel">—</div>
+  <div class="overlay-school" id="oSchool">—</div>
+  <button class="overlay-dismiss" onclick="dismissBell()">✓ बंद करा</button>
+  <div class="overlay-auto" id="oAuto">30 सेकंदात आपोआप बंद होईल</div>
+</div>
+
+<!-- Bottom status bar -->
+<div class="bottom-bar">
+  <div class="bar-status">
+    <div class="dot" id="statusDot"></div>
+    <span id="statusText">चालू आहे</span>
+  </div>
+  <span id="barSchool" style="color:#fbbf24;font-weight:700;">—</span>
+  <span id="barDay" style="opacity:0.6;">—</span>
+</div>
+
+<script>
+/* ═══════════════════════════════════════
+   BELL SCHEDULE DATA
+   High School  : Morning   (7:15 – 12:30)
+   Middle School: Afternoon (12:35 – 5:40)
+═══════════════════════════════════════ */
+const SCHEDULE = {
+  high: {
+    monthu: [
+      {h:7,  m:15, label:"पहिली बेल — प्रवेश",        type:"entry",   rings:1},
+      {h:7,  m:18, label:"दुसरी बेल — वर्गात जा",     type:"entry",   rings:2},
+      {h:7,  m:25, label:"तासिका 1 सुरू",              type:"period",  rings:1},
+      {h:8,  m:5,  label:"तासिका 2 सुरू",              type:"period",  rings:2},
+      {h:8,  m:40, label:"तासिका 3 सुरू",              type:"period",  rings:3},
+      {h:9,  m:15, label:"तासिका 4 सुरू",              type:"period",  rings:4},
+      {h:9,  m:55, label:"मध्यंतर सुरू",               type:"break",   rings:1},
+      {h:10, m:15, label:"तासिका 5 सुरू",              type:"period",  rings:5},
+      {h:10, m:50, label:"तासिका 6 सुरू",              type:"period",  rings:6},
+      {h:11, m:25, label:"तासिका 7 सुरू",              type:"period",  rings:7},
+      {h:11, m:55, label:"तासिका 8 सुरू",              type:"period",  rings:8},
+      {h:12, m:30, label:"विद्यार्थी सोडणे",           type:"dismiss", rings:3},
+    ],
+    fri: [
+      {h:7,  m:15, label:"पहिली बेल — प्रवेश",        type:"entry",   rings:1},
+      {h:7,  m:18, label:"दुसरी बेल — वर्गात जा",     type:"entry",   rings:2},
+      {h:7,  m:25, label:"तासिका 1 सुरू",              type:"period",  rings:1},
+      {h:8,  m:0,  label:"तासिका 2 सुरू",              type:"period",  rings:2},
+      {h:8,  m:35, label:"तासिका 3 सुरू",              type:"period",  rings:3},
+      {h:9,  m:5,  label:"तासिका 4 सुरू",              type:"period",  rings:4},
+      {h:9,  m:35, label:"तासिका 5 सुरू",              type:"period",  rings:5},
+      {h:10, m:10, label:"मध्यंतर सुरू",               type:"break",   rings:1},
+      {h:10, m:30, label:"तासिका 6 सुरू",              type:"period",  rings:6},
+      {h:11, m:0,  label:"तासिका 7 सुरू",              type:"period",  rings:7},
+      {h:11, m:30, label:"तासिका 8 सुरू",              type:"period",  rings:8},
+      {h:12, m:0,  label:"तासिका 9 सुरू",              type:"period",  rings:9},
+      {h:12, m:30, label:"विद्यार्थी सोडणे",           type:"dismiss", rings:3},
+    ],
+    sat: [
+      {h:7,  m:15, label:"पहिली बेल — प्रवेश",        type:"entry",   rings:1},
+      {h:7,  m:18, label:"दुसरी बेल — वर्गात जा",     type:"entry",   rings:2},
+      {h:7,  m:25, label:"तासिका 1 सुरू",              type:"period",  rings:1},
+      {h:7,  m:55, label:"तासिका 2 सुरू",              type:"period",  rings:2},
+      {h:8,  m:25, label:"तासिका 3 सुरू",              type:"period",  rings:3},
+      {h:8,  m:55, label:"तासिका 4 सुरू",              type:"period",  rings:4},
+      {h:9,  m:25, label:"तासिका 5 सुरू",              type:"period",  rings:5},
+      {h:9,  m:55, label:"मध्यंतर सुरू",               type:"break",   rings:1},
+      {h:10, m:15, label:"तासिका 6 सुरू",              type:"period",  rings:6},
+      {h:10, m:45, label:"तासिका 7 सुरू",              type:"period",  rings:7},
+      {h:11, m:15, label:"विद्यार्थी सोडणे",           type:"dismiss", rings:3},
+    ],
+  },
+  mid: {
+    monthu: [
+      {h:12, m:35, label:"पहिली बेल — प्रवेश",        type:"entry",   rings:1},
+      {h:12, m:38, label:"दुसरी बेल — वर्गात जा",     type:"entry",   rings:2},
+      {h:12, m:45, label:"तासिका 1 सुरू",              type:"period",  rings:1},
+      {h:13, m:25, label:"तासिका 2 सुरू",              type:"period",  rings:2},
+      {h:14, m:0,  label:"तासिका 3 सुरू",              type:"period",  rings:3},
+      {h:14, m:30, label:"तासिका 4 सुरू",              type:"period",  rings:4},
+      {h:15, m:10, label:"मध्यंतर सुरू",               type:"break",   rings:1},
+      {h:15, m:30, label:"तासिका 5 सुरू",              type:"period",  rings:5},
+      {h:16, m:5,  label:"तासिका 6 सुरू",              type:"period",  rings:6},
+      {h:16, m:40, label:"तासिका 7 सुरू",              type:"period",  rings:7},
+      {h:17, m:15, label:"तासिका 8 सुरू",              type:"period",  rings:8},
+      {h:17, m:40, label:"विद्यार्थी सोडणे",           type:"dismiss", rings:3},
+    ],
+    fri: [
+      {h:12, m:35, label:"पहिली बेल — प्रवेश",        type:"entry",   rings:1},
+      {h:12, m:38, label:"दुसरी बेल — वर्गात जा",     type:"entry",   rings:2},
+      {h:12, m:45, label:"तासिका 1 सुरू",              type:"period",  rings:1},
+      {h:13, m:25, label:"तासिका 2 सुरू",              type:"period",  rings:2},
+      {h:13, m:55, label:"तासिका 3 सुरू",              type:"period",  rings:3},
+      {h:14, m:25, label:"तासिका 4 सुरू",              type:"period",  rings:4},
+      {h:15, m:0,  label:"मध्यंतर सुरू",               type:"break",   rings:1},
+      {h:15, m:20, label:"तासिका 5 सुरू",              type:"period",  rings:5},
+      {h:15, m:40, label:"तासिका 6 सुरू",              type:"period",  rings:6},
+      {h:16, m:0,  label:"तासिका 7 सुरू",              type:"period",  rings:7},
+      {h:16, m:20, label:"तासिका 8 सुरू",              type:"period",  rings:8},
+      {h:16, m:50, label:"तासिका 9 सुरू",              type:"period",  rings:9},
+      {h:17, m:20, label:"विद्यार्थी सोडणे",           type:"dismiss", rings:3},
+    ],
+    sat: [
+      {h:11, m:25, label:"पहिली बेल — प्रवेश",        type:"entry",   rings:1},
+      {h:11, m:28, label:"दुसरी बेल — वर्गात जा",     type:"entry",   rings:2},
+      {h:11, m:35, label:"तासिका 1 सुरू",              type:"period",  rings:1},
+      {h:12, m:5,  label:"तासिका 2 सुरू",              type:"period",  rings:2},
+      {h:12, m:35, label:"तासिका 3 सुरू",              type:"period",  rings:3},
+      {h:13, m:5,  label:"तासिका 4 सुरू",              type:"period",  rings:4},
+      {h:13, m:35, label:"मध्यंतर सुरू",               type:"break",   rings:1},
+      {h:13, m:45, label:"तासिका 5 सुरू",              type:"period",  rings:5},
+      {h:14, m:25, label:"तासिका 6 सुरू",              type:"period",  rings:6},
+      {h:14, m:55, label:"तासिका 7 सुरू",              type:"period",  rings:7},
+      {h:15, m:25, label:"विद्यार्थी सोडणे",           type:"dismiss", rings:3},
+    ],
+  }
+};
+
+const DAYS_MR = ["रविवार","सोमवार","मंगळवार","बुधवार","गुरुवार","शुक्रवार","शनिवार"];
+const MONTHS_MR = ["जानेवारी","फेब्रुवारी","मार्च","एप्रिल","मे","जून","जुलै","ऑगस्ट","सप्टेंबर","ऑक्टोबर","नोव्हेंबर","डिसेंबर"];
+
+/* ─ helpers ─ */
+function getDayKey(dow) {
+  if(dow===0) return null; // Sunday
+  if(dow===6) return "sat";
+  if(dow===5) return "fri";
+  return "monthu";
+}
+function fmt2(n){ return String(n).padStart(2,"0"); }
+function timeStr(h,m){ return fmt2(h)+":"+fmt2(m); }
+
+function getTodayBells() {
+  const dow = new Date().getDay();
+  const dayKey = getDayKey(dow);
+  if(!dayKey) return [];
+  const all = [];
+  ["high","mid"].forEach(sch => {
+    (SCHEDULE[sch][dayKey]||[]).forEach(b => all.push({...b, school:sch}));
+  });
+  all.sort((a,b)=>(a.h*60+a.m)-(b.h*60+b.m));
+  return all;
+}
+
+/* ─ Bell Sound ─ */
+function playBell(rings) {
+  try {
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    function ding(t) {
+      [[880,1.2,1.4],[1320,0.4,0.9],[440,0.2,0.6]].forEach(([freq,vol,dur])=>{
+        const o=ctx.createOscillator(), g=ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type="sine"; o.frequency.setValueAtTime(freq,t);
+        o.frequency.exponentialRampToValueAtTime(freq*0.75, t+0.1);
+        g.gain.setValueAtTime(0,t);
+        g.gain.linearRampToValueAtTime(vol,t+0.015);
+        g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+        o.start(t); o.stop(t+dur+0.05);
+      });
+    }
+    for(let i=0;i<rings;i++) ding(ctx.currentTime + i*1.9);
+  } catch(e){ console.warn("Audio error:",e); }
+}
+
+/* ─ Overlay ─ */
+let _autoDismissTimer = null;
+let _autoSecs = 30;
+let _autoInterval = null;
+
+function showBellAlert(bell) {
+  const overlay = document.getElementById("bellOverlay");
+  document.getElementById("oTime").textContent   = timeStr(bell.h, bell.m);
+  document.getElementById("oLabel").textContent  = bell.label;
+  document.getElementById("oSchool").textContent =
+    bell.school==="high" ? "🔵 High School — 8वी ते 10वी" : "🟢 Middle School — 5वी ते 7वी";
+  overlay.classList.add("show");
+  document.body.classList.add("flash");
+  setTimeout(()=>document.body.classList.remove("flash"), 1200);
+  playBell(bell.rings);
+  // Vibrate if supported
+  if(navigator.vibrate) navigator.vibrate([500,200,500,200,500]);
+  // Auto dismiss countdown
+  _autoSecs = 30;
+  clearInterval(_autoInterval);
+  clearTimeout(_autoDismissTimer);
+  _autoInterval = setInterval(()=>{
+    _autoSecs--;
+    const el = document.getElementById("oAuto");
+    if(el) el.textContent = _autoSecs+" सेकंदात आपोआप बंद होईल";
+    if(_autoSecs<=0){ clearInterval(_autoInterval); dismissBell(); }
+  }, 1000);
+}
+
+function dismissBell() {
+  document.getElementById("bellOverlay").classList.remove("show");
+  clearInterval(_autoInterval);
+  clearTimeout(_autoDismissTimer);
+}
+
+/* ─ Schedule List ─ */
+function renderSchedule(bells) {
+  const now = new Date();
+  const nowMins = now.getHours()*60+now.getMinutes();
+  const list = document.getElementById("scheduleList");
+  list.innerHTML = "";
+  bells.forEach(b => {
+    const bMins = b.h*60+b.m;
+    const diff = bMins - nowMins;
+    let cls = diff < 0 ? "past" : diff === 0 ? "current" : diff <= 5 ? "next" : "";
+    const icon = b.type==="entry"?"🚪" : b.type==="break"?"☕" : b.type==="dismiss"?"🏠" : "📚";
+    const scBadge = b.school==="high"
+      ? `<span class="bell-school" style="background:rgba(30,60,114,0.5);color:#93c5fd;">8–10</span>`
+      : `<span class="bell-school" style="background:rgba(6,78,59,0.5);color:#6ee7b7;">5–7</span>`;
+    list.innerHTML += `
+      <div class="bell-item ${cls}">
+        <span class="bell-time">${timeStr(b.h,b.m)}</span>
+        <span class="bell-label">${icon} ${b.label}</span>
+        ${scBadge}
+      </div>`;
+  });
+}
+
+/* ─ Main Tick ─ */
+const _fired = new Set();
+
+function tick() {
+  const now = new Date();
+  const dow = now.getDay();
+  const dayKey = getDayKey(dow);
+
+  // Clock
+  document.getElementById("clock").textContent =
+    fmt2(now.getHours())+":"+fmt2(now.getMinutes())+":"+fmt2(now.getSeconds());
+  document.getElementById("dateStr").textContent =
+    DAYS_MR[dow]+", "+now.getDate()+" "+MONTHS_MR[now.getMonth()]+" "+now.getFullYear();
+
+  if(!dayKey) {
+    document.getElementById("nextLabel").textContent = "आज रविवार — सुट्टी 🎉";
+    document.getElementById("nextTime").textContent  = "";
+    document.getElementById("countdown").textContent = "--:--";
+    document.getElementById("barDay").textContent = "रविवार";
+    document.getElementById("statusDot").className = "dot off";
+    document.getElementById("statusText").textContent = "आज सुट्टी";
+    return;
+  }
+
+  document.getElementById("barDay").textContent = DAYS_MR[dow];
+  document.getElementById("statusDot").className = "dot";
+  document.getElementById("statusText").textContent = "चालू आहे";
+
+  const bells = getTodayBells();
+  const nowMins = now.getHours()*60+now.getMinutes();
+  const nowSecs = now.getHours()*3600+now.getMinutes()*60+now.getSeconds();
+
+  // Fire bells
+  bells.forEach(b => {
+    const key = `${b.h}:${b.m}:${b.school}`;
+    if(now.getHours()===b.h && now.getMinutes()===b.m && now.getSeconds()===0) {
+      if(!_fired.has(key)) {
+        _fired.add(key);
+        showBellAlert(b);
+      }
+    }
+  });
+
+  // Next bell
+  const next = bells.find(b => (b.h*60+b.m) > nowMins);
+  if(next) {
+    document.getElementById("nextLabel").textContent = next.label;
+    document.getElementById("nextTime").textContent  =
+      timeStr(next.h,next.m) + (next.school==="high" ? " • High School" : " • Middle School");
+    const diffSecs = (next.h*3600+next.m*60) - nowSecs;
+    const mm=Math.floor(diffSecs/60), ss=diffSecs%60;
+    document.getElementById("countdown").textContent = fmt2(mm)+":"+fmt2(ss);
+    document.getElementById("countdownSub").textContent =
+      next.school==="high" ? "High School (8–10)" : "Middle School (5–7)";
+    document.getElementById("barSchool").textContent =
+      next.school==="high" ? "🔵 High School" : "🟢 Middle School";
+  } else {
+    document.getElementById("nextLabel").textContent = "आजच्या सर्व बेल संपल्या ✅";
+    document.getElementById("nextTime").textContent  = "";
+    document.getElementById("countdown").textContent = "--:--";
+    document.getElementById("countdownSub").textContent = "";
+    document.getElementById("barSchool").textContent = "—";
+  }
+
+  // Schedule list — refresh every minute
+  if(now.getSeconds()===0 || document.getElementById("scheduleList").children.length===0) {
+    renderSchedule(bells);
+  }
+
+  // Midnight reset
+  if(now.getHours()===0&&now.getMinutes()===0&&now.getSeconds()===0) _fired.clear();
+}
+
+// Wake lock — screen on rahe (Android Chrome support)
+async function requestWakeLock() {
+  try {
+    if("wakeLock" in navigator) {
+      await navigator.wakeLock.request("screen");
+      console.log("Wake lock active");
+    }
+  } catch(e){ console.log("Wake lock not available"); }
+}
+requestWakeLock();
+
+// Start
+setInterval(tick, 1000);
+tick();
+renderSchedule(getTodayBells());
+</script>
+</body>
+</html>
