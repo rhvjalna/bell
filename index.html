@@ -175,6 +175,19 @@ body.flash { animation:flashbg 0.25s ease-in-out 4; }
 </head>
 <body>
 
+<!-- ═══ START SCREEN ═══ -->
+<div id="startScreen" style="position:fixed;inset:0;z-index:99999;
+  background:#0f172a;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;padding:30px;">
+  <div style="font-size:5rem;margin-bottom:16px;">🔔</div>
+  <h2 style="color:white;font-size:1.4rem;font-weight:800;margin-bottom:8px;font-family:Poppins,sans-serif;">RHV Bell — आपोआप बेल</h2>
+  <p style="color:rgba(255,255,255,0.55);font-size:0.85rem;margin-bottom:32px;font-family:Poppins,sans-serif;">High School (8–10) & Middle School (5–7)</p>
+  <button onclick="startBellSystem()" style="background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#0f172a;border:none;border-radius:50px;padding:18px 50px;font-size:1.2rem;font-weight:900;cursor:pointer;font-family:Poppins,sans-serif;box-shadow:0 8px 25px rgba(251,191,36,0.4);">
+    ▶&nbsp;&nbsp;सुरू करा
+  </button>
+  <p style="color:rgba(255,255,255,0.3);font-size:0.72rem;margin-top:20px;font-family:Poppins,sans-serif;">एकदा tap करा — दिवसभर आपोआप बेल वाजेल 🔔</p>
+</div>
+
 <div class="header">
   <h1>🔔 RHV Jalna — आपोआप बेल</h1>
   <p>तासिका वेळापत्रक • High School & Middle School</p>
@@ -504,12 +517,29 @@ async function requestWakeLock() {
     }
   } catch(e){ console.log("Wake lock not available"); }
 }
-requestWakeLock();
-
-// Start
-setInterval(tick, 1000);
-tick();
-renderSchedule(getTodayBells());
+// Start — wait for user tap (mobile audio policy)
+function startBellSystem() {
+  // Unlock audio context with user gesture
+  try {
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    g.gain.setValueAtTime(0, ctx.currentTime);
+    o.start(ctx.currentTime); o.stop(ctx.currentTime+0.01);
+  } catch(e){}
+  
+  // Hide start screen
+  document.getElementById("startScreen").style.display = "none";
+  
+  // Wake lock
+  requestWakeLock();
+  
+  // Start ticker
+  setInterval(tick, 1000);
+  tick();
+  renderSchedule(getTodayBells());
+}
 </script>
 </body>
 </html>
